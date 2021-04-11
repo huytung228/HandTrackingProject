@@ -1,6 +1,7 @@
 import cv2
 import mediapipe as mp
 import time
+import numpy as np
 
 class HandDetector():
     def __init__(self, mode=False, max_hands = 2, confidence=0.5):
@@ -37,15 +38,31 @@ if __name__ == '__main__':
     # Calculate fps
     cTime = 0
     pTime = 0
-    cap = cv2.VideoCapture('2hand.mp4')
+    cap = cv2.VideoCapture('1hand.mp4')
     handDetectorObj = HandDetector(confidence=0.7)
+    imgResult = None
+    x1,y1=0,0
     while(True):
         _, frame = cap.read()
-        handDetectorObj.detect_hand(image=frame, draw=True)
+        if imgResult is None:
+            imgResult = np.zeros_like(frame)
+        handDetectorObj.detect_hand(image=frame, draw=False)
         lm_cordinates = handDetectorObj.findPosition(frame, handNo=0)
         if len(lm_cordinates) != 0:
-            cv2.circle(frame, lm_cordinates[0], 10, (255, 255, 0), -1)
-        cv2.imshow('frame', frame)
+            (x2,y2) = lm_cordinates[4]
+            # cv2.circle(frame, lm_cordinates[4], 10, (255, 255, 0), -1)
+            if x1 == 0 and y1 == 0:
+                x1,y1= x2,y2
+            else:
+                # Draw the line on the canvas
+                imgResult = cv2.line(imgResult, (x1,y1),(x2,y2), [255,255,0], 4)
+            # After the line is drawn the new points become the previous points.
+            x1,y1= x2,y2
+        else:
+            x1,y1=(0,0)
+        frame = cv2.add(frame,imgResult)
+        stacked = np.hstack((imgResult,frame))
+        cv2.imshow('paint', stacked)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break       
 
